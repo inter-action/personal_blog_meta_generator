@@ -18,9 +18,9 @@ static ROOT_DIR: &'static str = "/Users/interaction/workspace/temp/testeddocs";
 
 fn main() {
     let target_path = Path::new(ROOT_DIR);
-    let mut docs: Box<Vec<Doc>> = Box::new(Vec::new());
+    let mut docs: Vec<Doc> = Vec::new();
 
-    fn create_handler<'a>(docs: &'a mut Box<Vec<Doc>>) -> Box<FnMut(&DirEntry) + 'a> {
+    fn create_handler<'a>(docs: &'a mut Vec<Doc>) -> Box<FnMut(&DirEntry) + 'a> {
         let handler = move |entry: &DirEntry| -> () {
             let rpath_result = entry.path();
             let rpath = match rpath_result.strip_prefix(ROOT_DIR) {
