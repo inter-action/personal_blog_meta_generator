@@ -1,50 +1,53 @@
+extern crate rustc_serialize;
+
+mod models;
+mod doc_reader;
+mod utils;
+
+//std
 use std::io;
 use std::fs::{self, DirEntry,};
 use std::path::Path;
 use std::fs::File;
 use std::io::Write;
 
-extern crate rustc_serialize;
+//external
 use rustc_serialize::json;
 
-// json encoding: 
-#[derive(Debug, RustcEncodable)]
-struct Doc {
-    path: String,
-    filename: String,
-}
+//mine
+use models::Doc;
 
 static ROOT_DIR: &'static str = "/Users/interaction/workspace/temp/testeddocs";
 
 fn main() {
     let target_path = Path::new(ROOT_DIR);
     let mut docs: Vec<Doc> = Vec::new();
-
-    fn create_handler<'a>(docs: &'a mut Vec<Doc>) -> Box<FnMut(&DirEntry) + 'a> {
-        let handler = move |entry: &DirEntry| -> () {
-            let rpath_result = entry.path();
-            let rpath = match rpath_result.strip_prefix(ROOT_DIR) {
-                Ok(path)=> path,
-                Err(_)=> panic!("strip failed")
-            };
-            let doc = Doc {
-                path: rpath.to_str().unwrap().to_string(),
-                filename: rpath.file_name().unwrap().to_os_string().into_string().unwrap(),
-            };
-            docs.push(doc);
-        };
-
-        Box::new(handler)
-    }
-
     {
         let mut handler = create_handler(&mut docs);
         visit_dirs(&target_path, &mut |entry: &DirEntry|{
             handler(entry)
         }).unwrap();
     }
-    save_json(docs.as_ref());
+    save_json(&docs);
 }
+
+fn create_handler<'a>(docs: &'a mut Vec<Doc>) -> Box<FnMut(&DirEntry) + 'a> {
+    let handler = move |entry: &DirEntry| -> () {
+        let rpath_result = entry.path();
+        let rpath = match rpath_result.strip_prefix(ROOT_DIR) {
+            Ok(path)=> path,
+            Err(_)=> panic!("strip failed")
+        };
+        let doc = Doc {
+            path: rpath.to_str().unwrap().to_string(),
+            filename: rpath.file_name().unwrap().to_os_string().into_string().unwrap(),
+        };
+        docs.push(doc);
+    };
+
+    Box::new(handler)
+}
+
 
 fn save_json(result: &Vec<Doc>){
     let json_str = json::encode(&result).unwrap();
@@ -67,4 +70,13 @@ fn visit_dirs(dir: &Path, cb: &mut FnMut(&DirEntry)) -> io::Result<()> {
         }
     }
     Ok(())
+}
+
+
+#[cfg(test)]
+mod test_reader {
+    #[test]
+    fn test_create_capacity_zero() {
+        assert_eq!(1, 1);
+    }
 }
