@@ -5,3 +5,4 @@ authors = ["miao jing <243127395@qq.com>"]
 
 [dependencies]
 rustc-serialize = "0.3.22"
+regex = "0.2"

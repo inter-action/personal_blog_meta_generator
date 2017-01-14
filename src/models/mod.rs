@@ -1,9 +1,8 @@
-use rustc_serialize::json;
+use std::collections::HashMap;
 
-
-// json encoding: 
 #[derive(Debug, RustcEncodable)]
 pub struct Doc {
     pub path: String,
     pub filename: String,
+    pub meta: Option<HashMap<String, String>>,
 }

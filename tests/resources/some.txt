@@ -1,0 +1,9 @@
+========
+-title: intro rust programming
+-tags: rust, rustlang, hello
+-last_edit:2017-01-14 21:28:44
+-created:2017-01-14 21:29:02
+========
+
+
+this is doc text
