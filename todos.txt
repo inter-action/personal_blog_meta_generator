@@ -1,0 +1,35 @@
+https://areweideyet.com/
+
+https://github.com/rust-lang-nursery/rustup.rs/blob/master/README.md
+
+
+rust with vscode:
+    https://github.com/saviorisdead/RustyCode
+
+
+unit testing:
+    https://doc.rust-lang.org/book/testing.html
+
+    
+
+todos:
+
+    done:
+        create docs
+            add last edit time.
+            add title
+            add tags
+
+        sort by create time
+        replace println with envlog
+            add .env reader 
+        replace try! macro with ? 
+
+    pending:
+        setting up a debug environment
+        add makefile lint rule, lint: cargo clippy
+        
+
+
+
+        
