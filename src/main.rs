@@ -4,7 +4,7 @@ extern crate dotenv;
 #[macro_use]
 extern crate log;
 extern crate env_logger;
-
+extern crate glob;
 
 #[macro_use]
 mod macros {
@@ -30,11 +30,16 @@ use std::env;
 
 // external
 use rustc_serialize::json;
-use regex::Regex;
 use dotenv::dotenv;
 
 // mine
 use models::Doc;
+
+const GLOB_OPTIONS: glob::MatchOptions = glob::MatchOptions {
+    case_sensitive: false,
+    require_literal_separator: true,
+    require_literal_leading_dot: false
+};
 
 fn main() {
     // -------- start: init env
@@ -53,10 +58,18 @@ fn main() {
     let target_path = Path::new(doc_path);
     let mut docs: Vec<Doc> = Vec::new();
     {
-        let ignored_paths: Vec<Regex> = vec![Regex::new(r"^\.").unwrap()];
+        // move this kind of config to file
+        let blacklist: Vec<glob::Pattern> = vec![
+            glob::Pattern::new("**/.*").unwrap()
+        ];
 
-        let mut handler = create_handler(&mut docs, &ignored_paths, doc_path);
-        visit_dirs(&target_path, &mut |entry: &DirEntry| handler(entry)).unwrap();
+        let whitelist: Vec<glob::Pattern> = vec![
+            glob::Pattern::new("**/*.txt").unwrap(),
+            glob::Pattern::new("**/*.md").unwrap(),
+        ];
+
+        let mut handler = create_handler(&mut docs, doc_path);
+        visit_dirs(&target_path, &mut |entry: &DirEntry| handler(entry), &blacklist, &whitelist).unwrap();
     }
     docs.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
     save_json(&docs);
@@ -64,20 +77,10 @@ fn main() {
 
 
 fn create_handler<'a>(docs: &'a mut Vec<Doc>,
-                      ignored_paths: &'a Vec<Regex>,
                       root_path: &'a str)
                       -> Box<FnMut(&DirEntry) + 'a> {
     // due to visit_dirs function, this entry param should always be file type.
     let handler = move |entry: &DirEntry| -> () {
-        let filename_osr = entry.file_name();
-        let filename = filename_osr.to_str().unwrap();
-        for ref re in ignored_paths {
-            if re.is_match(filename) {
-                debug!("find ignored file: {:?}, {:?}", filename, re);
-                return;
-            }
-        }
-
         match doc_reader::read(entry, Path::new(root_path)) {
             Ok(doc) => {
                 docs.push(doc);
@@ -100,13 +103,41 @@ fn save_json(result: &Vec<Doc>) {
 }
 
 // one possible implementation of walking a directory only visiting files
-fn visit_dirs(dir: &Path, cb: &mut FnMut(&DirEntry)) -> io::Result<()> {
+fn visit_dirs(dir: &Path, cb: &mut FnMut(&DirEntry), excludes: &Vec<glob::Pattern>, includes: &Vec<glob::Pattern>) -> io::Result<()> {
     if fs::metadata(dir)?.is_dir() {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;
+
+            let mut is_exclude = false;
+            for ref pattern in excludes {
+                // self.pattern.matches_path_with(Path::new(&s), &options),
+                if pattern.matches_path_with(&entry.path(), &GLOB_OPTIONS) {
+                    is_exclude = true;
+                    break;
+                }
+            }
+
+            if is_exclude {
+                debug!("skip direntry in black list: {:?}", &entry.path());
+                continue;
+            }
+
+
             if fs::metadata(entry.path())?.is_dir() {
-                visit_dirs(&entry.path(), cb)?;
+                visit_dirs(&entry.path(), cb, excludes, includes)?;
             } else {
+                let mut is_include = false;
+                for ref pattern in includes {
+                    if pattern.matches_path_with(&entry.path(), &GLOB_OPTIONS) && !is_include {
+                        is_include = true;
+                    }
+                }
+
+                if !is_include {
+                    debug!("skip direntry not in white list: {:?}", &entry.path());
+                    continue;
+                }
+                
                 cb(&entry);
             }
         }
