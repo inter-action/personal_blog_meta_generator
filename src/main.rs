@@ -1,7 +1,8 @@
 extern crate rustc_serialize;
 extern crate regex;
 extern crate dotenv;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate log;
 extern crate env_logger;
 
 
@@ -103,11 +104,11 @@ fn save_json(result: &Vec<Doc>) {
 
 // one possible implementation of walking a directory only visiting files
 fn visit_dirs(dir: &Path, cb: &mut FnMut(&DirEntry)) -> io::Result<()> {
-    if try!(fs::metadata(dir)).is_dir() {
-        for entry in try!(fs::read_dir(dir)) {
-            let entry = try!(entry);
-            if try!(fs::metadata(entry.path())).is_dir() {
-                try!(visit_dirs(&entry.path(), cb));
+    if fs::metadata(dir)?.is_dir() {
+        for entry in fs::read_dir(dir)? {
+            let entry = entry?;
+            if fs::metadata(entry.path())?.is_dir() {
+                visit_dirs(&entry.path(), cb)?;
             } else {
                 cb(&entry);
             }

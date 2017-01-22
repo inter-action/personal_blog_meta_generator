@@ -64,11 +64,7 @@ pub fn read(entry: &DirEntry, root_path: &Path) -> Result<Doc> {
 #[cfg(test)]
 mod test_reader {
     use std::path::Path;
-    use std::fs::read_dir;
-    use std::fmt::format;
-
     use super::read;
-    use models::Doc;
     use utils::file_to_direntry;
 
 

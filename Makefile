@@ -31,4 +31,4 @@ fmt:
 	cargo fmt
 
 clean_src:
-	rm -rf src/**/*.bk
+	find src -type file -name "*.bk" -exec rm -rf {} \;

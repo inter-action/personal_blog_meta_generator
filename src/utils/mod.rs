@@ -23,7 +23,7 @@ pub fn file_to_direntry<T: AsRef<Path>>(filepath: T) -> Result<DirEntry, Box<Err
 
     match parent {
         Some(parent) => {
-            let filename = try!(pf.strip_prefix(parent));
+            let filename = pf.strip_prefix(parent)?;
             path_to_entry(parent, filename)
         }
         None => path_to_entry(Path::new("."), path),
@@ -35,8 +35,8 @@ fn path_to_entry<A: AsRef<Path>, B: AsRef<Path>>(path: A,
                                                  -> Result<DirEntry, Box<Error>> {
     let filename: &Path = filename.as_ref();
     let path: &Path = path.as_ref();
-    for entry in try!(read_dir(path)) {
-        let entry = try!(entry);
+    for entry in read_dir(path)? {
+        let entry = entry?;
         if entry.path().is_file() && entry.path().ends_with(filename) {
             return Ok(entry);
         }
@@ -69,10 +69,10 @@ mod test {
     fn test_file_to_direntry_noparent() {
         let result = file_to_direntry(PathBuf::from("./todos.txt"));
         match result {
-            Ok(entry) => {
+            Ok(_) => {
                 assert!(true);
             }
-            e => {
+            _ => {
                 assert!(false);
             }
         }
