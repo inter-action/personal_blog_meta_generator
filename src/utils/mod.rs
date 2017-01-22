@@ -30,9 +30,7 @@ pub fn file_to_direntry<T: AsRef<Path>>(filepath: T) -> Result<DirEntry, Box<Err
     }
 }
 
-fn path_to_entry<A: AsRef<Path>, B: AsRef<Path>>(path: A,
-                                                 filename: B)
-                                                 -> Result<DirEntry, Box<Error>> {
+fn path_to_entry<A: AsRef<Path>, B: AsRef<Path>>(path: A, filename: B) -> Result<DirEntry, Box<Error>> {
     let filename: &Path = filename.as_ref();
     let path: &Path = path.as_ref();
     for entry in read_dir(path)? {

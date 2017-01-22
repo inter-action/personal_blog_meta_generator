@@ -36,30 +36,26 @@ use dotenv::dotenv;
 // mine
 use models::Doc;
 
-static ROOT_DIR: &'static str = "/Users/interaction/workspace/temp/testeddocs";
-
-
 fn main() {
     // -------- start: init env
     dotenv().ok();
-
-    for (key, value) in env::vars() {
-        if key == "RUST_LOG" {
-            println!("{}: {}", key, value);
-        }
-    }
-
     env_logger::init().unwrap();
 
+    let ref doc_path = env::var("TARGET_DOC_PATH").expect("TARGET_DOC_PATH is needed from system env");
+    debug!("TARGET_DOC_PATH is: {:?}", doc_path);
+
+    if let Ok(level) = env::var("RUST_LOG") {
+        debug!("RUST_LOG env: {}", level);
+    }
     // -------- end: init env
 
 
-    let target_path = Path::new(ROOT_DIR);
+    let target_path = Path::new(doc_path);
     let mut docs: Vec<Doc> = Vec::new();
     {
         let ignored_paths: Vec<Regex> = vec![Regex::new(r"^\.").unwrap()];
 
-        let mut handler = create_handler(&mut docs, &ignored_paths);
+        let mut handler = create_handler(&mut docs, &ignored_paths, doc_path);
         visit_dirs(&target_path, &mut |entry: &DirEntry| handler(entry)).unwrap();
     }
     docs.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
@@ -68,7 +64,8 @@ fn main() {
 
 
 fn create_handler<'a>(docs: &'a mut Vec<Doc>,
-                      ignored_paths: &'a Vec<Regex>)
+                      ignored_paths: &'a Vec<Regex>,
+                      root_path: &'a str)
                       -> Box<FnMut(&DirEntry) + 'a> {
     // due to visit_dirs function, this entry param should always be file type.
     let handler = move |entry: &DirEntry| -> () {
@@ -81,7 +78,7 @@ fn create_handler<'a>(docs: &'a mut Vec<Doc>,
             }
         }
 
-        match doc_reader::read(entry, Path::new(ROOT_DIR)) {
+        match doc_reader::read(entry, Path::new(root_path)) {
             Ok(doc) => {
                 docs.push(doc);
             }

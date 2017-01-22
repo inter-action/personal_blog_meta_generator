@@ -21,8 +21,7 @@ pub fn read(entry: &DirEntry, root_path: &Path) -> Result<Doc> {
         .modified()?
         .duration_since(UNIX_EPOCH)
         .expect("failed to get last modified time");
-    let nlast_modified = (last_modified.as_secs() * 1000 * 1000 +
-                          last_modified.subsec_nanos() as u64) / 1000;
+    let nlast_modified = (last_modified.as_secs() * 1000 * 1000 + last_modified.subsec_nanos() as u64) / 1000;
 
     match f.read_to_string(&mut s) {
         Ok(_) => {
