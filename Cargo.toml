@@ -6,3 +6,10 @@ authors = ["miao jing <243127395@qq.com>"]
 [dependencies]
 rustc-serialize = "0.3.22"
 regex = "0.2"
+dotenv = "0.8.0"
+log = "0.3.6"
+
+[dependencies.env_logger]
+version = "0.3.5"
+default-features = false
+features = []

@@ -1,5 +1,9 @@
 extern crate rustc_serialize;
 extern crate regex;
+extern crate dotenv;
+#[macro_use] extern crate log;
+extern crate env_logger;
+
 
 #[macro_use]
 mod macros {
@@ -21,10 +25,13 @@ use std::fs::{self, DirEntry};
 use std::path::Path;
 use std::fs::File;
 use std::io::Write;
+use std::env;
 
 // external
 use rustc_serialize::json;
 use regex::Regex;
+use dotenv::dotenv;
+
 // mine
 use models::Doc;
 
@@ -32,6 +39,20 @@ static ROOT_DIR: &'static str = "/Users/interaction/workspace/temp/testeddocs";
 
 
 fn main() {
+    // -------- start: init env
+    dotenv().ok();
+
+    for (key, value) in env::vars() {
+        if key == "RUST_LOG" {
+            println!("{}: {}", key, value);
+        }
+    }
+
+    env_logger::init().unwrap();
+
+    // -------- end: init env
+
+
     let target_path = Path::new(ROOT_DIR);
     let mut docs: Vec<Doc> = Vec::new();
     {
@@ -54,7 +75,7 @@ fn create_handler<'a>(docs: &'a mut Vec<Doc>,
         let filename = filename_osr.to_str().unwrap();
         for ref re in ignored_paths {
             if re.is_match(filename) {
-                println!("find ignored file: {:?}, {:?}", filename, re);
+                debug!("find ignored file: {:?}, {:?}", filename, re);
                 return;
             }
         }
@@ -64,7 +85,7 @@ fn create_handler<'a>(docs: &'a mut Vec<Doc>,
                 docs.push(doc);
             }
             error => {
-                println!("failed to read doc {:?}, error: {:?}", entry, error);
+                debug!("failed to read doc {:?}, error: {:?}", entry, error);
             }
         }
     };
