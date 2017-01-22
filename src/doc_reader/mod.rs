@@ -25,7 +25,7 @@ pub fn read(entry: &DirEntry, root_path: &Path) -> Result<Doc> {
 
     match f.read_to_string(&mut s) {
         Ok(_) => {
-            let re = Regex::new(r"(?s)^={3,}\n(.*?)={3,}").unwrap();
+            let re = Regex::new(r"(?s)^={3,}\n(-.*?\n)+={3,}").unwrap();
             if let Some(cap) = re.captures(&s) {
                 let meta_ref: &str = cap.get(1).unwrap().as_str();
                 let tokens: Vec<(&str, &str)> = meta_ref.lines()
