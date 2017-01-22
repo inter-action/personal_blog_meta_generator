@@ -17,9 +17,15 @@ test_with_stdout:
 
 compile_watch:
 	watchexec -e rs -f src cargo build
-	
+
+build:
+	cargo build
+
 run:
 	cargo run
 
 debug_run:
 	RUST_BACKTRACE=1 cargo run
+
+fmt: 
+	cargo fmt

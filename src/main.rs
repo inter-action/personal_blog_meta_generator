@@ -24,24 +24,40 @@ use std::io::Write;
 
 // external
 use rustc_serialize::json;
-
+use regex::Regex;
 // mine
 use models::Doc;
 
 static ROOT_DIR: &'static str = "/Users/interaction/workspace/temp/testeddocs";
 
+
 fn main() {
     let target_path = Path::new(ROOT_DIR);
     let mut docs: Vec<Doc> = Vec::new();
     {
-        let mut handler = create_handler(&mut docs);
+        let ignored_paths: Vec<Regex> = vec![Regex::new(r"^\.").unwrap()];
+
+        let mut handler = create_handler(&mut docs, &ignored_paths);
         visit_dirs(&target_path, &mut |entry: &DirEntry| handler(entry)).unwrap();
     }
     save_json(&docs);
 }
 
-fn create_handler<'a>(docs: &'a mut Vec<Doc>) -> Box<FnMut(&DirEntry) + 'a> {
+
+fn create_handler<'a>(docs: &'a mut Vec<Doc>,
+                      ignored_paths: &'a Vec<Regex>)
+                      -> Box<FnMut(&DirEntry) + 'a> {
+    // due to visit_dirs function, this entry param should always be file type.
     let handler = move |entry: &DirEntry| -> () {
+        let filename_osr = entry.file_name();
+        let filename = filename_osr.to_str().unwrap();
+        for ref re in ignored_paths {
+            if re.is_match(filename) {
+                println!("find ignored file: {:?}, {:?}", filename, re);
+                return;
+            }
+        }
+
         match doc_reader::read(entry, Path::new(ROOT_DIR)) {
             Ok(doc) => {
                 docs.push(doc);
