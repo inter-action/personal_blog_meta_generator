@@ -29,3 +29,6 @@ debug_run:
 
 fmt: 
 	cargo fmt
+
+clean_src:
+	rm -rf src/**/*.bk

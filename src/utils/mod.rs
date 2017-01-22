@@ -1,5 +1,5 @@
 use std::fs::{read_dir, DirEntry};
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::convert::AsRef;
 use std::error::Error;
 use std::convert::From;

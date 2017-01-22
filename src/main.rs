@@ -40,6 +40,7 @@ fn main() {
         let mut handler = create_handler(&mut docs, &ignored_paths);
         visit_dirs(&target_path, &mut |entry: &DirEntry| handler(entry)).unwrap();
     }
+    docs.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
     save_json(&docs);
 }
 
