@@ -1,0 +1,8 @@
+[doc]
+path = "/Users/interaction/workspace/github/blog"
+whitelist = [
+    "**/*.txt", "**/*.md", 
+]
+blacklist = [
+    "**/.*", "tpl/*.md", "README.md"
+]

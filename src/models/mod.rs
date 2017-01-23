@@ -12,3 +12,15 @@ pub struct Doc {
 // created here in order to abstract code.
 // a common Ord trait should be implemented on this File struct.
 //
+
+#[derive(Debug)]
+pub struct DocConfig {
+    pub path: String,
+    pub whitelist: Option<Vec<String>>,
+    pub blacklist: Option<Vec<String>>,
+}
+
+#[derive(Debug)]
+pub struct Config {
+    pub doc: DocConfig,
+}

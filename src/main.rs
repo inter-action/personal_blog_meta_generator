@@ -5,6 +5,7 @@ extern crate dotenv;
 extern crate log;
 extern crate env_logger;
 extern crate glob;
+extern crate toml;
 
 #[macro_use]
 mod macros {
@@ -19,6 +20,7 @@ mod macros {
 mod models;
 mod doc_reader;
 mod utils;
+mod config_parser;
 
 // std
 use std::io;
@@ -38,7 +40,7 @@ use models::Doc;
 const GLOB_OPTIONS: glob::MatchOptions = glob::MatchOptions {
     case_sensitive: false,
     require_literal_separator: true,
-    require_literal_leading_dot: false
+    require_literal_leading_dot: false,
 };
 
 fn main() {
@@ -46,39 +48,52 @@ fn main() {
     dotenv().ok();
     env_logger::init().unwrap();
 
-    let ref doc_path = env::var("TARGET_DOC_PATH").expect("TARGET_DOC_PATH is needed from system env");
-    debug!("TARGET_DOC_PATH is: {:?}", doc_path);
+    let ref config_path = env::var("CONFIG_PATH").expect("CONFIG_PATH is needed from system env");
+    debug!("CONFIG_PATH is: {:?}", config_path);
 
     if let Ok(level) = env::var("RUST_LOG") {
         debug!("RUST_LOG env: {}", level);
     }
+
+    let config = config_parser::parse_config(config_path);
     // -------- end: init env
-
-
-    let target_path = Path::new(doc_path);
+    let target_path = Path::new(&config.doc.path);
     let mut docs: Vec<Doc> = Vec::new();
     {
-        // move this kind of config to file
-        let blacklist: Vec<glob::Pattern> = vec![
-            glob::Pattern::new("**/.*").unwrap()
-        ];
+        let mut blacklist: Vec<glob::Pattern> = Vec::new();
+        if let Some(bl) = config.doc.blacklist {
+            let mut i = 0;
+            while i < bl.len() {
+                let entry = &bl[i];
+                blacklist.push(glob::Pattern::new(entry).expect(&format!("invalid blacklist format: {}", entry)));
+                i = i + 1;
+            }
+        }
 
-        let whitelist: Vec<glob::Pattern> = vec![
-            glob::Pattern::new("**/*.txt").unwrap(),
-            glob::Pattern::new("**/*.md").unwrap(),
-        ];
+        let mut whitelist: Vec<glob::Pattern> = Vec::new();
+        if let Some(bl) = config.doc.whitelist {
+            let mut i = 0;
+            while i < bl.len() {
+                let entry = &bl[i];
+                whitelist.push(glob::Pattern::new(entry).expect(&format!("invalid whitelist format: {}", entry)));
+                i = i + 1;
+            }
+        }
 
-        let mut handler = create_handler(&mut docs, doc_path);
-        visit_dirs(&target_path, &mut |entry: &DirEntry| handler(entry), &blacklist, &whitelist).unwrap();
+        let mut handler = create_handler(&mut docs, &config.doc.path);
+        visit_dirs(&target_path,
+                   &target_path,
+                   &mut |entry: &DirEntry| handler(entry),
+                   &blacklist,
+                   &whitelist)
+            .unwrap();
     }
     docs.sort_by(|a, b| b.last_modified.cmp(&a.last_modified));
     save_json(&docs);
 }
 
 
-fn create_handler<'a>(docs: &'a mut Vec<Doc>,
-                      root_path: &'a str)
-                      -> Box<FnMut(&DirEntry) + 'a> {
+fn create_handler<'a>(docs: &'a mut Vec<Doc>, root_path: &'a str) -> Box<FnMut(&DirEntry) + 'a> {
     // due to visit_dirs function, this entry param should always be file type.
     let handler = move |entry: &DirEntry| -> () {
         match doc_reader::read(entry, Path::new(root_path)) {
@@ -103,41 +118,46 @@ fn save_json(result: &Vec<Doc>) {
 }
 
 // one possible implementation of walking a directory only visiting files
-fn visit_dirs(dir: &Path, cb: &mut FnMut(&DirEntry), excludes: &Vec<glob::Pattern>, includes: &Vec<glob::Pattern>) -> io::Result<()> {
+fn visit_dirs(root_dir: &Path,
+              dir: &Path,
+              cb: &mut FnMut(&DirEntry),
+              excludes: &Vec<glob::Pattern>,
+              includes: &Vec<glob::Pattern>)
+              -> io::Result<()> {
     if fs::metadata(dir)?.is_dir() {
         for entry in fs::read_dir(dir)? {
             let entry = entry?;
-
+            let entry_path = entry.path();
+            let relative_path = &entry_path.strip_prefix(root_dir).expect("strip_prefix failed");
             let mut is_exclude = false;
             for ref pattern in excludes {
                 // self.pattern.matches_path_with(Path::new(&s), &options),
-                if pattern.matches_path_with(&entry.path(), &GLOB_OPTIONS) {
+                if pattern.matches_path_with(relative_path, &GLOB_OPTIONS) {
                     is_exclude = true;
                     break;
                 }
             }
 
             if is_exclude {
-                debug!("skip direntry in black list: {:?}", &entry.path());
+                debug!("skip direntry in black list: {:?}", relative_path);
                 continue;
             }
 
-
-            if fs::metadata(entry.path())?.is_dir() {
-                visit_dirs(&entry.path(), cb, excludes, includes)?;
+            if fs::metadata(&entry_path)?.is_dir() {
+                visit_dirs(root_dir, &entry_path, cb, excludes, includes)?;
             } else {
                 let mut is_include = false;
                 for ref pattern in includes {
-                    if pattern.matches_path_with(&entry.path(), &GLOB_OPTIONS) && !is_include {
+                    if pattern.matches_path_with(relative_path, &GLOB_OPTIONS) && !is_include {
                         is_include = true;
                     }
                 }
 
                 if !is_include {
-                    debug!("skip direntry not in white list: {:?}", &entry.path());
+                    debug!("skip direntry not in white list: {:?}", relative_path);
                     continue;
                 }
-                
+
                 cb(&entry);
             }
         }
